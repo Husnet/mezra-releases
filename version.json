@@ -1,1 +1,1 @@
-{"v": "3.76", "apk": "https://raw.githubusercontent.com/Husnet/mezra-releases/main/Mezra-3.76.apk", "notes": "Tahmini gelir sayfasının en altında yeni grafik: her ay bağlanan muzun kaç ay sonra kesildiği (hasat takvimi)."}
+{"v": "3.77", "apk": "https://raw.githubusercontent.com/Husnet/mezra-releases/main/Mezra-3.77.apk", "notes": "Tahmini gelir: hasat zamanı artık güneşe göre yumuşak bir eğriyle hesaplanıyor (Mayıs 3,5 ay … Kasım 5 ay). Olgunlaşma katsayısı (× 1,1 / 1,2 / 1,3) eklendi."}
