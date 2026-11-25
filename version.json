@@ -1,1 +1,1 @@
-{"v": "3.78", "apk": "https://raw.githubusercontent.com/Husnet/mezra-releases/main/Mezra-3.78.apk", "notes": "Tahmini gelir: Bağlandı kaydında muzun doğumu bağlamadan önceki günlere yayılır (yazın ~1 hafta, kışın 1 aya kadar)."}
+{"v": "3.79", "apk": "https://raw.githubusercontent.com/Husnet/mezra-releases/main/Mezra-3.79.apk", "notes": "Tahmini gelir: her seraya kendi olgunlaşma katsayısı (güney × 0,9, kuzey × 1,1 gibi), yılın katsayısıyla çarpılır."}
