@@ -1,1 +1,1 @@
-{"v": "3.87", "apk": "https://raw.githubusercontent.com/Husnet/mezra-releases/main/Mezra-3.87.apk", "notes": "Tahmini gelir: her ayın muz fiyatı, geçen yıl aynı ayda satılan muzun dolar fiyatından bugünkü kurla hesaplanıyor (o ayda satış yoksa son 30 gün)."}
+{"v": "3.88", "apk": "https://raw.githubusercontent.com/Husnet/mezra-releases/main/Mezra-3.88.apk", "notes": "Bulut eşitlemesi artık dakikada bir ve yalnızca uygulama kullanılırken yapılıyor; açık bırakılan sayfa Firebase'in günlük ücretsiz okuma hakkını tüketmiyor."}

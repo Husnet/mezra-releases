@@ -716,8 +716,8 @@ select.inp{appearance:none;-webkit-appearance:none;background-image:linear-gradi
 .logobtn.sm .logo{width:30px;height:30px;border-radius:9px}
 .logobtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .syncdot{position:absolute;right:-3px;bottom:-3px;width:11px;height:11px;border-radius:50%;border:2px solid var(--band-a);background:transparent;display:none}
-.syncdot.s-ok,.syncdot.s-pending,.syncdot.s-offline,.syncdot.s-error,.syncdot.s-idle{display:block}
-.syncdot.s-ok{background:#5ad27f} .syncdot.s-pending,.syncdot.s-idle{background:var(--banana)} .syncdot.s-offline{background:#aab2a6} .syncdot.s-error{background:#ff7b72}
+.syncdot.s-ok,.syncdot.s-pending,.syncdot.s-offline,.syncdot.s-error,.syncdot.s-quota,.syncdot.s-idle{display:block}
+.syncdot.s-ok{background:#5ad27f} .syncdot.s-pending,.syncdot.s-idle{background:var(--banana)} .syncdot.s-offline{background:#aab2a6} .syncdot.s-error,.syncdot.s-quota{background:#ff7b72}
 .band .brand h1{font-size:26px}
 .pvbar{position:relative;margin-top:10px;display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.22);border-radius:12px;padding:6px 6px 6px 10px;font-size:13px;font-weight:600}
 .pvbar span{flex:1;min-width:0}
@@ -1878,7 +1878,7 @@ tr:{
   mp_sum:"alan haritada", mp_sum_da:"haritadan ölçülen", mp_sum_decl:"kayıtlı (haritadakiler)", mp_not:"Haritada değil", mp_show:"Göster", mp_draw_one:"Çiz",
   mz_tab:"Harita Zoom", mz_fit:"Serayı ortala", mz_on_map:"Büyük haritada göster", mz_empty_t:"Henüz işaretli sera yok", mz_empty:"Seralarınızı önce Harita sekmesinde çizin; burada yalnızca onlar, büyük olarak görünür.", mz_off:"Haritada çizilmemiş alanlar: {list}.", dv_more:"Diğer",
   cl_title:"Bulut ve hesaplar", cl_local:"Veriler yalnızca bu telefonda. Çalışanların kendi telefonlarından görmesi için buluta bağlayın.",
-  cl_ok:"Eşitlendi, {t}", cl_pending:"Değişiklikler gönderiliyor…", cl_offline:"İnternet yok; bağlantı gelince eşitlenecek.", cl_error:"Eşitleme hatası. Tekrar denenecek.", cl_wait:"Eşitleniyor…",
+  cl_ok:"Eşitlendi, {t}", cl_pending:"Değişiklikler gönderiliyor…", cl_offline:"İnternet yok; bağlantı gelince eşitlenecek.", cl_error:"Eşitleme hatası. Tekrar denenecek.", cl_quota:"Bulutun (Firebase) bugünkü ücretsiz okuma hakkı doldu. Diğer cihazlardaki değişiklikler hak yenilenince gelir (her gün Türkiye saatiyle 10–11 civarı). Bu cihazdaki kayıtlar kaybolmaz.", cl_wait:"Eşitleniyor…",
   cl_connect:"Buluta bağla", cl_connect_sub:"Firebase ile ücretsiz eşitleme ve çalışan hesapları", cl_sync_now:"Şimdi eşitle",
   cl_role_admin:"Yönetici", cl_role_worker:"Çalışan", cl_this_phone:"Bu telefon",
   cl_logout:"Çıkış yap", cl_logout_admin:"Bu telefondaki kopya silinir; veriler bulutta kalır.", cl_busy:"Bekleyin…", cl_done:"Buluta bağlandı",
@@ -4689,7 +4689,7 @@ async function chatSync(full){
 function chatTick(){
   clearInterval(CHAT_TIMER); CHAT_TIMER = null;
   if (!chatOn()) return;
-  CHAT_TIMER = setInterval(function(){ if (document.hidden) return; if (UI.tab === 'chat') chatSync(); }, 4000);
+  CHAT_TIMER = setInterval(function(){ if (document.hidden || (window.mzSyncActive && !window.mzSyncActive(300000))) return; if (UI.tab === 'chat') chatSync(); }, 4000);
 }
 
 /* ---------- unread ---------- */
@@ -8047,7 +8047,7 @@ function onViewerAccClick(a, act, sh, st, busy){
   return false;
 }
 
-const VERSION = '3.87';
+const VERSION = '3.88';
 const KEY = 'ekip-plani-v1', UIKEY = 'ekip-plani-ui-v1', BK_HEAD = 'MEZRA-YEDEK';
 const AVN = 10;
 const CAT_IDS = CATS.map(c => c.id);
@@ -9960,7 +9960,7 @@ const inMyTeam = x => x.staff.some(id => teamIds().indexOf(id) >= 0);
 /* stable JSON so the same content always compares equal */
 function J(v){ if (v === null || typeof v !== 'object') return JSON.stringify(v === undefined ? null : v); if (Array.isArray(v)) return '[' + v.map(J).join(',') + ']'; return '{' + Object.keys(v).filter(k => v[k] !== undefined).sort().map(k => JSON.stringify(k) + ':' + J(v[k])).join(',') + '}'; }
 function setRole(r){ RI = r; ROLE = r.role; writeJ(ROLEKEY, r); if (r.role !== 'local') setTimeout(() => { if (actOn()) actStart(); updCheck(true); }, 600); }
-function setSyncState(s){ SYNC_STATE = s; if (s === 'ok') LAST_SYNC = Date.now(); const d = $('.syncdot'); if (d) d.className = 'syncdot s-' + s; paintDrawer(); }
+function setSyncState(s){ SYNC_STATE = s; if (s === 'ok'){ LAST_SYNC = Date.now(); if (window.MZ_SYNC) window.MZ_SYNC.quota = 0; } const d = $('.syncdot'); if (d) d.className = 'syncdot s-' + s; paintDrawer(); }
 const PUB = ['id','name','role','phone','color','hours','active','team','leaves','kind','sample'];
 /* the farm as Firestore documents; wages, salaries, attendance and money stay admin-only */
 function cloudDocs(db){
@@ -10042,10 +10042,15 @@ async function pullNow(){
   } catch (e) { cloudErr(e); }
   finally { pulling = false; }
 }
+/* 3.88: the timer sync only while the page is in use, and not for 30 minutes after a quota error */
+var MZ_SYNC = window.MZ_SYNC = { every:60000, idle:180000, last:Date.now(), quota:0 };
+function mzSyncActive(idle){ var S = window.MZ_SYNC; return Date.now() - S.last < (idle || S.idle) && Date.now() >= S.quota; }
+window.mzSyncActive = mzSyncActive;
 function syncNow(){ if (ROLE === 'admin' && dirty) pushNow().then(pullNow); else pullNow(); }
 function cloudErr(e){
   const c = e && e.code;
   if (c === 'offline') return setSyncState('offline');
+  if (c === 'Quota' || /quota|exhausted/i.test((e && e.message) || '')){ window.MZ_SYNC.quota = Date.now() + 30 * 60000; return setSyncState('quota'); }
   if ((ROLE === 'worker' || ROLE === 'viewer') && (c === 'denied' || c === 'signedout' || /TOKEN|USER_DISABLED|USER_NOT_FOUND/.test(c || ''))){ logout(true); toast(t('cl_revoked')); return; }
   setSyncState('error');
 }
@@ -10279,7 +10284,7 @@ function closeDrawer(){ if (!drawerEl) return; const { el, sc } = drawerEl; draw
 function syncLine(){
   if (ROLE === 'local') return t('cl_local');
   const tm = LAST_SYNC ? new Date(LAST_SYNC).toTimeString().slice(0, 5) : '';
-  return SYNC_STATE === 'ok' ? t('cl_ok', { t:tm }) : SYNC_STATE === 'pending' ? t('cl_pending') : SYNC_STATE === 'offline' ? t('cl_offline') : SYNC_STATE === 'error' ? t('cl_error') : t('cl_wait');
+  return SYNC_STATE === 'ok' ? t('cl_ok', { t:tm }) : SYNC_STATE === 'pending' ? t('cl_pending') : SYNC_STATE === 'offline' ? t('cl_offline') : SYNC_STATE === 'error' ? t('cl_error') : SYNC_STATE === 'quota' ? t('cl_quota') : t('cl_wait');
 }
 function paintDrawer(){
   if (!drawerEl) return;
@@ -10893,8 +10898,9 @@ function init(){
   if (ROLE !== 'local'){ setSyncState(PENDING.length ? 'pending' : 'idle'); syncNow(); }
   chatTick();
   if (ROLE === 'local') setTimeout(() => briefPackEnsure(), 3000);
-  setInterval(() => { if (!document.hidden && ROLE !== 'local' && !sheets.some(x => x.o.cls === 'editor')) syncNow(); }, 20000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && ROLE !== 'local') syncNow(); });
+  ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(ev => document.addEventListener(ev, () => { const S = window.MZ_SYNC, was = Date.now() - S.last >= S.idle; S.last = Date.now(); if (was && !document.hidden && ROLE !== 'local' && Date.now() >= S.quota) syncNow(); }, { passive:true, capture:true }));
+  setInterval(() => { if (!document.hidden && ROLE !== 'local' && !sheets.some(x => x.o.cls === 'editor') && mzSyncActive()) syncNow(); }, window.MZ_SYNC.every);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && ROLE !== 'local'){ window.MZ_SYNC.last = Date.now(); if (Date.now() >= window.MZ_SYNC.quota) syncNow(); } });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) updCheck(); });
   actInit(); pickInit(); bkInit(); setTimeout(() => updCheck(true), 2500);
   window.__ekip = { BK:{ get:bkGet, put:bkPut, run:bkRun, auto:bkAuto, parse:bkParse, script:BK_SCRIPT }, FC:{ win:fcWin, area:fcArea, data:fcData, cal:fcCalStats, past:fcPastData, delay:fcDelay, areaFac:fcAreaFac, eff:fcEffFac, lag:fcLag, bagSpan:fcBagSpan, price:fcPrice, pmon:fcPriceMonths, kg:fcKgStats, tool:function(n, i){ return advRunTool(n, i || {}); } }, MPX:{ cloud:function(){ return cloudDocs(DB); }, m2:mpM2, da:mpDa, toScr:function(la, lo){ return mpToScr(la, lo); }, get MP(){ return MP; }, get U(){ return MPU; } }, get DB(){ return DB; }, get UI(){ return UI; }, render, save, chatSync, get CHAT(){ return chatLoad(); }, aiLocal:aiLocalParse, BRIEF, VOICE, voiceEnsure, voiceLoad, voiceFor, briefText, briefPlay, briefPackEnsure, briefPack, briefStop, briefAuto, briefPrefs, trNum, get SFX_N(){ return SFX.n; }, SFX, playCash, playSfx, finTotals, bkRange, bkUI, harvSum, openEditor:id => openEditor(taskById(id)), t, planText, staffPlanText, genDates, sunTimes, parseBackup, today, addDays, attSum, balanceOf, ledgerOf, salaryMonths, statementText, monthSummaryText, moonOf, mainPhase, loadWeather, PDB, get ROLE(){ return ROLE; }, get RI(){ return RI; }, get SYNC_STATE(){ return SYNC_STATE; }, pushNow, pullNow, syncNow, commit, Fire, isV, viewDocs, vDBOf, curYm, jrPhotoSync, jrSyncState, JDB, get JR_DENIED(){ return JR_DENIED; } };
