@@ -1534,6 +1534,12 @@ small.hqs{font-weight:400;color:var(--muted);font-size:12px}
 .fcafrow{display:grid;grid-template-columns:minmax(0,1fr) 78px 78px;gap:8px}
 .fcafh span{font-size:12px;color:var(--muted);font-weight:700;text-align:center}
 .fcafrow .fcfac{width:auto}
+/* 3.87: the price of each month under the price field */
+.fcpm{font-size:13px;margin:10px 0 4px}
+.fcpm td{padding:7px 6px}
+.fcpm td:first-child,.fcpm td:nth-child(2){white-space:nowrap}
+.fcpm td:nth-child(2){font-weight:650}
+.fcpm td:last-child{font-weight:400;color:var(--muted)}
 .seg.ait button{padding:7px 3px;font-size:13px}
 .dlai{margin:0 0 12px}
 .bkcode{white-space:pre-wrap;word-break:break-all;font-size:11px;line-height:1.4;max-height:220px;overflow:auto;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0 14px}
@@ -1789,7 +1795,8 @@ tr:{
   fc_warn_price:"Muz satış fiyatı bulunamadı. Aşağıya kg fiyatını yazın.",
   fc_warn_kg:"Dal başına kg için geçmiş veri yok (Hasat'ta kg ve dal birlikte girilmiş kayıt gerekir). Şimdilik dal başına {k} kg alındı; aşağıdan değiştirebilirsiniz.",
   fc_set_t:"Hesap ayarları", fc_cal_btn:"Hasat takvimi",
-  fc_price_l:"Muz fiyatı ({c}/kg)", fc_price_h30:"Boş bırakırsanız son 30 günün ortalama satış fiyatı kullanılır: {v}/kg.", fc_price_hl:"Boş bırakırsanız son satışın fiyatı kullanılır ({d}): {v}/kg.", fc_price_h0:"Satış kaydı yok; tahmini kg fiyatını yazın.",
+  fc_price_l:"Muz fiyatı ({c}/kg)", fc_price_hm:"Boş bırakırsanız her ayın fiyatı, geçen yıl aynı ayda sattığınız muzun dolar fiyatından bugünkü kurla hesaplanır.", fc_price_f30:"Geçen yıl o ayda satış yoksa son 30 günün ortalaması kullanılır: {v}/kg.", fc_price_fl:"Geçen yıl o ayda satış yoksa son satışın fiyatı kullanılır ({d}): {v}/kg.",
+  fc_price_ph_m:"aylara göre", fc_avg:"ort. {v}/kg", fc_pm_c1:"Hasat ayı", fc_pm_c2:"kg fiyatı", fc_pm_c3:"Neye göre", fc_pm_ly:"{m}: {u} $ × {r}", fc_pm_30:"son 30 gün", fc_pm_last:"son satış, {d}", fc_price_h0:"Satış kaydı yok; tahmini kg fiyatını yazın.",
   fc_kg_l:"Dal başına kg", fc_auto:"otomatik", fc_kg_h:"Boş bırakırsanız geçmiş hasatlarınızdan hesaplanır: o seranın o aydaki ortalaması; yoksa çiftliğin o aydaki ortalaması; o da yoksa genel ortalama.",
   fc_rate_h:"Kur: 1 {s} = {r} ₺ ({d}).", fc_rate_fix:"sabit kur", fc_rate_h0:"Kur henüz alınamadı (internet gerekir).",
   fc_disclaimer:"Bu bir tahmindir: hava, hastalık ve fiyat değiştikçe gerçek sonuç farklı olabilir.",
@@ -3918,9 +3925,11 @@ async function advRunTool(name, i){
         var na = DB.harv.filter(function(h){ return !h.area && h.dal > 0; }).reduce(function(s, h){ return s + h.dal; }, 0); if (na) out.bunches_cut_without_greenhouse = na; }
       try {
         var FD = fcData({ per:'month', area:area || '' });
-        out.harvest_forecast = { note:'Mezra\'s own forecast, the one the farmer sees in Hasat > Tahmini gelir. Hanging and cutting never stop, so a greenhouse holds bunches of every age. A tied record (Bağlandı) is a batch hung that day: cut in the window his harvest calendar gives for that date, spread evenly over it. A count holds every bunch: what it finds above the batches already known is taken as hung at a steady pace since the previous count (a first count: over the past months) and is cut by the calendar from the day after the count on; what it finds below is taken as cut. Bunches cut in Hasat come off the batches in season, and what is left of a batch is always laid over the days it still has, so cutting faster or slower than the calendar leaves no gap. Only bunches hanging today are in it: harvest from forecast_grows_from on will grow as bunches hung after the last record are counted. kg = bunches x kg per bunch of past harvests in that month; value = kg x price.',
+        out.harvest_forecast = { note:'Mezra\'s own forecast, the one the farmer sees in Hasat > Tahmini gelir. Hanging and cutting never stop, so a greenhouse holds bunches of every age. A tied record (Bağlandı) is a batch hung that day: cut in the window his harvest calendar gives for that date, spread evenly over it. A count holds every bunch: what it finds above the batches already known is taken as hung at a steady pace since the previous count (a first count: over the past months) and is cut by the calendar from the day after the count on; what it finds below is taken as cut. Bunches cut in Hasat come off the batches in season, and what is left of a batch is always laid over the days it still has, so cutting faster or slower than the calendar leaves no gap. Only bunches hanging today are in it: harvest from forecast_grows_from on will grow as bunches hung after the last record are counted. kg = bunches x kg per bunch of past harvests in that month; value = kg x the price of that month (price_by_month).',
           forecast_grows_from:FD.open || undefined, greenhouses_with_an_old_last_record:FD.stale.length ? FD.stale : undefined,
-          price_tl_per_kg:FD.price > 0 ? advR(FD.price) : undefined, price_basis:FD.manPrice ? 'typed by the farmer' : FD.pr.src === '30' ? 'average of the last 30 days of banana sales' : FD.pr.src === 'last' ? 'last sale, ' + FD.pr.d : 'no sale recorded', kg_per_bunch_basis:FD.manKg ? 'typed by the farmer' : FD.defKg ? 'no past harvest with both kg and bunches: default ' + FC_KG_DEF + ' kg' : 'past harvests', currency:FD.cur, tl_per_currency:FD.rate > 0 ? advR(FD.rate) : undefined,
+          price_tl_per_kg:FD.price > 0 ? advR(FD.avg) : undefined, price_basis:FD.manPrice ? 'typed by the farmer, for every month' : !FD.pr.src ? 'no sale recorded' : 'the farmer\'s rule: each month is priced at what banana sold for in US dollars in the same month a year earlier (each sale at its own day\'s rate), turned into TL at today\'s rate; a month without such sales takes ' + (FD.pr.src === '30' ? 'the average of the last 30 days of banana sales' : 'the last sale, ' + FD.pr.d) + '. price_tl_per_kg is the average over the forecast',
+          price_by_month:FD.price > 0 && !FD.manPrice ? FD.pm.map(function(m){ return { month:m.k, tl_per_kg:advR(m.v), basis:m.src === 'ly' ? 'sales of ' + m.ly + ': ' + advR(m.usd) + ' USD/kg x ' + advR(m.rate) + ' TL/USD today' : m.src === 'last' ? 'last sale, ' + m.d : 'last 30 days' }; }) : undefined,
+          kg_per_bunch_basis:FD.manKg ? 'typed by the farmer' : FD.defKg ? 'no past harvest with both kg and bunches: default ' + FC_KG_DEF + ' kg' : 'past harvests', currency:FD.cur, tl_per_currency:FD.rate > 0 ? advR(FD.rate) : undefined,
           overdue_bunches_written_to_the_next_days:FD.tot.warn > 0.5 ? advR0(FD.tot.warn) : undefined, long_overdue_bunches_left_out:FD.tot.old > 0.5 ? advR0(FD.tot.old) : undefined,
           months:FD.P.map(function(p){ return { month:p.k, from_today:p.part || undefined, will_grow:p.more || undefined, bunches:advR0(p.n), kg:advR0(p.kg), value_tl:FD.price > 0 ? advR0(p.tl) : undefined, value_fx:FD.price > 0 && FD.rate > 0 ? advR0(p.fx) : undefined }; }),
           greenhouses:FD.sel.map(function(r){ return { name:r.a.name, greenhouse_ripening_factor:(function(g){ return g.s !== 1 || g.w !== 1 ? { summer:g.s, winter:g.w } : undefined; })(fcAreaFac(r.a)), bunches:advR0(r.n), kg:advR0(r.kg), overdue_bunches:r.warn > 0.5 ? advR0(r.warn) : undefined, last_record:r.rec || undefined, kg_cut_since_the_last_count_without_a_bunch_count:r.nodal > 0.5 ? advR0(r.nodal) : undefined,
@@ -7424,6 +7433,23 @@ function fcPrice(){
   rows.forEach(function(h){ if (h.d === last){ kg += h.kg; sum += harvSum(h); } });
   return { v:sum / kg, src:'last', d:last };
 }
+/* 3.87, the farmer's rule: banana cut in a month is worth what banana sold for in dollars in the same month a year
+   earlier (each sale at its own day's rate), turned into ₺ at today's rate. A month without such sales takes the recent
+   price (fcPrice); a typed price stands for every month. → function('YYYY-MM') = { v (₺/kg), src, ly, usd, rate, d } */
+function fcPriceMonths(F, PR){
+  var L = fxLatest('USD'), now = L && L.rate > 0 ? L.rate : 0, by = {}, memo = {};
+  if (!(F.price > 0)) DB.harv.forEach(function(h){ if (isMuz(h.prod) && h.kg > 0 && harvSum(h) > 0) (by[h.d.slice(0, 7)] || (by[h.d.slice(0, 7)] = [])).push(h); });
+  return function(ym){
+    if (memo[ym]) return memo[ym];
+    var o;
+    if (F.price > 0) o = { v:F.price, src:'man' };
+    else {
+      var ly = (+ym.slice(0, 4) - 1) + ym.slice(4), usd = by[ly] && now > 0 ? harvFxKg(by[ly], 'USD') : null;
+      o = usd > 0 ? { v:usd * now, src:'ly', ly:ly, usd:usd, rate:now } : { v:PR.v, src:PR.src, d:PR.d };
+    }
+    return (memo[ym] = o);
+  };
+}
 function fcPeriods(per, a, b){
   var out = [], k;
   if (per === 'week') for (k = weekStart(a); k <= b; k = addDays(k, 7)) out.push({ k:k, part:k < a });
@@ -7443,17 +7469,17 @@ function fcData(o){
   var F = fcUI(); o = o || {};
   var per = o.per || F.per, areaF = o.area != null ? o.area : F.area, td = today();
   var cur = fxCur(), L = fxLatest(cur), rate = L && L.rate > 0 ? L.rate : 0;
-  var KS = fcKgStats(), PR = fcPrice(), price = F.price > 0 ? F.price : PR.v;
+  var KS = fcKgStats(), PR = fcPrice(), PM = fcPriceMonths(F, PR), price = F.price > 0 ? F.price : PR.v;
   var keyOf = per === 'week' ? function(d){ return weekStart(d); } : per === 'year' ? function(d){ return d.slice(0, 4); } : function(d){ return d.slice(0, 7); };
   var areas = [], srcs = {}, rowsOf = {};
   DB.harv.forEach(function(h){ if (h.area) (rowsOf[h.area] || (rowsOf[h.area] = [])).push(h); });
   DB.areas.forEach(function(a){
     if (!dlIsBanana(a) || !dlState(a)) return;
-    var r = fcArea(a, td, rowsOf[a.id] || []); r.n = 0; r.kg = 0; r.first = ''; r.last = ''; r.per = {};
+    var r = fcArea(a, td, rowsOf[a.id] || []); r.n = 0; r.kg = 0; r.tl = 0; r.first = ''; r.last = ''; r.per = {}; r.pm = {};
     Object.keys(r.days).forEach(function(d){
       var n = r.days[d]; if (!(n > 1e-9)) return;
-      var q = fcKg(KS, a.id, +d.slice(5, 7), F.kg), k = keyOf(d), p = r.per[k] || (r.per[k] = { n:0, kg:0 });
-      p.n += n; p.kg += n * q.v; r.n += n; r.kg += n * q.v; srcs[q.src] = 1;
+      var q = fcKg(KS, a.id, +d.slice(5, 7), F.kg), k = keyOf(d), p = r.per[k] || (r.per[k] = { n:0, kg:0, tl:0 }), ym = d.slice(0, 7), pm = PM(ym), kg = n * q.v;
+      p.n += n; p.kg += kg; p.tl += kg * pm.v; r.n += n; r.kg += kg; r.tl += kg * pm.v; srcs[q.src] = 1; r.pm[ym] = pm;
       if (!r.first || d < r.first) r.first = d; if (d > r.last) r.last = d;
     });
     /* bunches long past their days are worth a word once they weigh in the greenhouse */
@@ -7471,24 +7497,28 @@ function fcData(o){
   if (areaF && !areas.some(function(r){ return r.a.id === areaF; })) areaF = '';
   var sel = areas.filter(function(r){ return !areaF || r.a.id === areaF; });
   var last = td; sel.forEach(function(r){ if (r.last > last) last = r.last; });
-  var money = function(kg){ var tl = kg * price; return { tl:tl, fx:rate > 0 ? tl / rate : 0 }; };
+  var fxOf = function(tl){ return rate > 0 ? tl / rate : 0; };
   /* open = the day from which the forecast still lacks bunches; stale = greenhouses whose last record is so old that this day has passed */
-  var tot = { n:0, kg:0, late:0, warn:0, old:0, nodal:0 }, open = '', openBy = null, stale = [];
+  var tot = { n:0, kg:0, tl:0, late:0, warn:0, old:0, nodal:0 }, open = '', openBy = null, stale = [];
   sel.forEach(function(r){
-    tot.n += r.n; tot.kg += r.kg; tot.late += r.late; tot.warn += r.warn; tot.old += r.old; tot.nodal += r.nodal;
+    tot.n += r.n; tot.kg += r.kg; tot.tl += r.tl; tot.late += r.late; tot.warn += r.warn; tot.old += r.old; tot.nodal += r.nodal;
     if (!r.open || !(r.n > 0.5)) return;
     if (r.open <= td) stale.push(r.a.name); else if (!open || r.open < open){ open = r.open; openBy = r; }
   });
   /* more = the period reaches into those days: it will grow as new bunches are counted */
   var grow = stale.length ? td : open;
   var P = fcPeriods(per, td, last).map(function(p){
-    var x = { k:p.k, part:p.part, l:fcPerLabel(per, p.k, td), n:0, kg:0, by:[], more:!!grow && fcPerEnd(per, p.k) >= grow };
-    sel.forEach(function(r){ var q = r.per[p.k]; if (q && q.n > 1e-9){ x.n += q.n; x.kg += q.kg; x.by.push({ a:r.a, n:q.n, kg:q.kg }); } });
-    var m = money(x.kg); x.tl = m.tl; x.fx = m.fx; return x;
+    var x = { k:p.k, part:p.part, l:fcPerLabel(per, p.k, td), n:0, kg:0, tl:0, by:[], more:!!grow && fcPerEnd(per, p.k) >= grow };
+    sel.forEach(function(r){ var q = r.per[p.k]; if (q && q.n > 1e-9){ x.n += q.n; x.kg += q.kg; x.tl += q.tl; x.by.push({ a:r.a, n:q.n, kg:q.kg, tl:q.tl }); } });
+    x.fx = fxOf(x.tl); return x;
   });
-  var tm = money(tot.kg); tot.tl = tm.tl; tot.fx = tm.fx;
-  areas.forEach(function(r){ var m = money(r.kg); r.tl = m.tl; r.fx = m.fx; });
-  return { td:td, per:per, area:areaF, cur:cur, rate:rate, rateD:L && !L.fixed ? L.d : '', price:price, pr:PR, manPrice:F.price > 0, manKg:F.kg > 0, defKg:!!srcs.def, areas:areas, sel:sel, P:P, tot:tot, open:open, openBy:openBy, stale:stale };
+  tot.fx = fxOf(tot.tl);
+  areas.forEach(function(r){ r.fx = fxOf(r.tl); });
+  /* the price of each month the chosen greenhouses are cut in, and what it rests on */
+  var pmAll = {}; sel.forEach(function(r){ for (var k in r.pm) pmAll[k] = r.pm[k]; });
+  var pms = Object.keys(pmAll).sort().map(function(k){ return Object.assign({ k:k }, pmAll[k]); });
+  return { td:td, per:per, area:areaF, cur:cur, rate:rate, rateD:L && !L.fixed ? L.d : '', price:price, pr:PR, avg:tot.kg > 0 ? tot.tl / tot.kg : price, pm:pms, varies:!(F.price > 0) && pms.some(function(m){ return m.src === 'ly'; }),
+    manPrice:F.price > 0, manKg:F.kg > 0, defKg:!!srcs.def, areas:areas, sel:sel, P:P, tot:tot, open:open, openBy:openBy, stale:stale };
 }
 
 /* ---------- the page ---------- */
@@ -7501,7 +7531,8 @@ function fcSpan(a, b){ return fmtDMs(a) + ' – ' + fmtDMs(b) + ' ' + b.slice(0,
 function viewFc(){
   var F = fcUI(), h = band({ title:t('fc_title'), back:true, noGear:true }) + '<div class="page fc">';
   if (!DB.areas.some(dlIsBanana)) return h + emptyCard(t('fc_title'), t('dl_no_areas'), '', 'banana') + '</div>';
-  fxEnsure(today());
+  /* 3.87: the rates back to the first priced sale, for last year's dollar prices */
+  fxEnsure(fxMinDate());
   var D = fcData(), per = D.per, T = D.tot;
   if (!D.areas.length) return h + emptyCard(t('fc_none_t'), t('fc_none'), '<button class="btn primary" data-act="tab" data-tab="dal">' + ic('sprout', 'sm') + esc(t('fc_go_dal')) + '</button>', 'sprout') + '</div>';
   var past = F.mode === 'past';
@@ -7514,7 +7545,7 @@ function viewFc(){
   /* headline: everything still hanging, in kilos, ₺ and $ */
   var kpd = T.n > 0.5 ? T.kg / T.n : 0;
   h += '<div class="stats flat">' + stat('accent', fcBig(fcKgTxt(T.kg)), t('fc_st_kg'), t('fc_st_dal', { n:dlFmt(T.n) }), '')
-    + stat('money', D.price > 0 ? moneyHTML(T.tl) : '–', t('fc_st_tl'), D.price > 0 ? fmtMoney(Math.round(D.price * 100) / 100) + '/kg' : t('fc_no_price_s'), '')
+    + stat('money', D.price > 0 ? moneyHTML(T.tl) : '–', t('fc_st_tl'), D.price > 0 ? (D.varies ? t('fc_avg', { v:fmtMoney(Math.round(D.avg * 100) / 100) }) : fmtMoney(Math.round(D.avg * 100) / 100) + '/kg') : t('fc_no_price_s'), '')
     + stat('money', D.price > 0 && D.rate > 0 ? fcBig(fcFx(D, T.fx)) : '–', t('fc_st_fx_' + D.cur), D.rate > 0 ? t('fc_rate', { s:fxSym(D.cur), r:fmtRate(Math.round(D.rate * 100) / 100) }) : t('fc_no_rate'), 'fx-open')
     + stat('', kpd ? fcBig(fmtN(Math.round(kpd * 10) / 10) + ' kg') : '–', t('fc_st_kpd'), t(D.manKg ? 'fc_src_man' : D.defKg ? 'fc_src_def' : 'fc_src_hist'), '') + '</div>';
   if (!(D.price > 0)) h += '<div class="alert amber">' + ic('alert') + '<p>' + esc(t('fc_warn_price')) + '</p></div>';
@@ -7532,9 +7563,9 @@ function viewFc(){
   else shown.forEach(function(p){
     if (!(p.n > 0.05)){ h += '<div class="fcrow zero"><span class="fcn"><b>' + esc(p.l) + '</b></span><span class="fcv"><small>' + esc(t(p.more ? 'fc_zero_more' : 'fc_zero')) + '</small></span></div>'; return; }
     var open = canOpen && F.open === p.k;
-    h += '<' + (canOpen ? 'button class="fcrow" data-act="fc-open" data-v="' + p.k + '" aria-expanded="' + open + '"' : 'div class="fcrow"') + '><span class="fcn"><b>' + esc(p.l) + '</b><small>' + esc((p.part ? t('fc_now') + ' · ' : '') + t('fc_row_sub', { n:dlFmt(p.n), k:fmtN(Math.round(p.kg / p.n * 10) / 10) }) + (p.more ? ' · ' + t('fc_more') : '')) + '</small></span>'
+    h += '<' + (canOpen ? 'button class="fcrow" data-act="fc-open" data-v="' + p.k + '" aria-expanded="' + open + '"' : 'div class="fcrow"') + '><span class="fcn"><b>' + esc(p.l) + '</b><small>' + esc((p.part ? t('fc_now') + ' · ' : '') + t('fc_row_sub', { n:dlFmt(p.n), k:fmtN(Math.round(p.kg / p.n * 10) / 10) }) + (D.varies && p.kg > 0 ? ' · ' + fmtMoney(Math.round(p.tl / p.kg * 100) / 100) + '/kg' : '') + (p.more ? ' · ' + t('fc_more') : '')) + '</small></span>'
       + '<span class="fcv"><b>' + esc(fcKgTxt(p.kg)) + '</b>' + fcMoneyLine(D, p) + '</span><span class="bkbar"><i style="width:' + Math.max(2, Math.round(p.kg / (top || 1) * 100)) + '%;background:var(--leaf)"></i></span></' + (canOpen ? 'button' : 'div') + '>';
-    if (open) h += '<div class="fcsub">' + p.by.map(function(b){ return '<div><span>' + esc(b.a.name) + '</span><span>' + esc(t('fc_st_dal', { n:dlFmt(b.n) }) + ' · ' + fcKgTxt(b.kg) + (D.price > 0 ? ' · ' + fcTl(D, b.kg * D.price) : '')) + '</span></div>'; }).join('') + '</div>';
+    if (open) h += '<div class="fcsub">' + p.by.map(function(b){ return '<div><span>' + esc(b.a.name) + '</span><span>' + esc(t('fc_st_dal', { n:dlFmt(b.n) }) + ' · ' + fcKgTxt(b.kg) + (D.price > 0 ? ' · ' + fcTl(D, b.tl) : '')) + '</span></div>'; }).join('') + '</div>';
   });
   h += '</div>' + (D.open && T.n > 0.5 ? '<p class="hint">' + esc(t('fc_open', { d:fmtDMs(D.open) + ' ' + D.open.slice(0, 4) }) + (D.sel.length > 1 ? ' ' + t('fc_open_by', { a:D.openBy.a.name, d:fmtDMs(D.openBy.rec) + ' ' + D.openBy.rec.slice(0, 4) }) : '')) + '</p>' : '')
     + (canOpen ? '<p class="hint">' + esc(t('fc_open_hint')) + '</p>' : '') + '</section>';
@@ -7555,9 +7586,14 @@ function viewFc(){
       }).join('') : '<div class="fcrow zero"><span class="fcn"><b>' + esc(t('fc_nothing')) + '</b></span></div>') + '</div></section>';
   }
   /* what the figures rest on, and the two that can be typed */
-  var ph = D.pr.src === '30' ? t('fc_price_h30', { v:fmtMoney(Math.round(D.pr.v * 100) / 100) }) : D.pr.src === 'last' ? t('fc_price_hl', { v:fmtMoney(Math.round(D.pr.v * 100) / 100), d:fmtDMY(D.pr.d) }) : t('fc_price_h0');
+  /* 3.87: empty = each month from last year's dollar price of that month; the months without one take the recent price */
+  var pv = fmtMoney(Math.round(D.pr.v * 100) / 100);
+  var ph = !D.pr.src ? t('fc_price_h0') : t('fc_price_hm') + ' ' + (D.pr.src === '30' ? t('fc_price_f30', { v:pv }) : t('fc_price_fl', { v:pv, d:fmtDMY(D.pr.d) }));
+  var pmT = !D.manPrice && D.price > 0 && D.pm.length ? '<table class="fccal fcpm"><thead><tr><th>' + esc(t('fc_pm_c1')) + '</th><th>' + esc(t('fc_pm_c2')) + '</th><th>' + esc(t('fc_pm_c3')) + '</th></tr></thead><tbody>' + D.pm.map(function(m){
+      return '<tr><td>' + esc(fmtMonth(m.k)) + '</td><td>' + esc(fmtMoney(Math.round(m.v * 100) / 100)) + '</td><td>' + esc(m.src === 'ly' ? t('fc_pm_ly', { m:fmtMonth(m.ly), u:fmtN(Math.round(m.usd * 1000) / 1000), r:fmtRate(Math.round(m.rate * 100) / 100) }) : m.src === 'last' ? t('fc_pm_last', { d:fmtDMs(m.d) }) : t('fc_pm_30')) + '</td></tr>';
+    }).join('') + '</tbody></table>' : '';
   h += '<section class="sec"><div class="sec-h"><h2>' + esc(t('fc_set_t')) + '</h2><button class="linkbtn" data-act="fc-cal">' + esc(t('fc_cal_btn')) + ic('chevR', 'sm') + '</button></div><div class="fcset">'
-    + '<div class="field"><label for="fcPrice">' + esc(t('fc_price_l', { c:curSym() })) + '</label><input class="inp" id="fcPrice" inputmode="decimal" autocomplete="off" value="' + (F.price > 0 ? esc(fmtN(F.price)) : '') + '" placeholder="' + (D.pr.v > 0 ? esc(fmtN(Math.round(D.pr.v * 100) / 100)) : '') + '"><p class="hint">' + esc(ph) + '</p></div>'
+    + '<div class="field"><label for="fcPrice">' + esc(t('fc_price_l', { c:curSym() })) + '</label><input class="inp" id="fcPrice" inputmode="decimal" autocomplete="off" value="' + (F.price > 0 ? esc(fmtN(F.price)) : '') + '" placeholder="' + (D.varies ? esc(t('fc_price_ph_m')) : D.pr.v > 0 ? esc(fmtN(Math.round(D.pr.v * 100) / 100)) : '') + '"><p class="hint">' + esc(ph) + '</p>' + pmT + '</div>'
     + '<div class="field"><label for="fcKg">' + esc(t('fc_kg_l')) + '</label><input class="inp" id="fcKg" inputmode="decimal" autocomplete="off" value="' + (F.kg > 0 ? esc(fmtN(F.kg)) : '') + '" placeholder="' + esc(t('fc_auto')) + '"><p class="hint">' + esc(t('fc_kg_h')) + '</p></div>'
     + '<p class="hint">' + esc(D.rate > 0 ? t('fc_rate_h', { s:fxSym(D.cur), r:fmtRate(D.rate), d:D.rateD ? fmtDMs(D.rateD) : t('fc_rate_fix') }) : t('fc_rate_h0')) + ' <button class="linkbtn tiny" data-act="fx-open">' + esc(t('fx_nav')) + ic('chevR', 'sm') + '</button></p>'
     + '<p class="hint">' + esc(t('fc_disclaimer')) + '</p></div></section>';
@@ -8011,7 +8047,7 @@ function onViewerAccClick(a, act, sh, st, busy){
   return false;
 }
 
-const VERSION = '3.86';
+const VERSION = '3.87';
 const KEY = 'ekip-plani-v1', UIKEY = 'ekip-plani-ui-v1', BK_HEAD = 'MEZRA-YEDEK';
 const AVN = 10;
 const CAT_IDS = CATS.map(c => c.id);
@@ -10861,7 +10897,7 @@ function init(){
   document.addEventListener('visibilitychange', () => { if (!document.hidden && ROLE !== 'local') syncNow(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) updCheck(); });
   actInit(); pickInit(); bkInit(); setTimeout(() => updCheck(true), 2500);
-  window.__ekip = { BK:{ get:bkGet, put:bkPut, run:bkRun, auto:bkAuto, parse:bkParse, script:BK_SCRIPT }, FC:{ win:fcWin, area:fcArea, data:fcData, cal:fcCalStats, past:fcPastData, delay:fcDelay, areaFac:fcAreaFac, eff:fcEffFac, lag:fcLag, bagSpan:fcBagSpan, price:fcPrice, kg:fcKgStats, tool:function(n, i){ return advRunTool(n, i || {}); } }, MPX:{ cloud:function(){ return cloudDocs(DB); }, m2:mpM2, da:mpDa, toScr:function(la, lo){ return mpToScr(la, lo); }, get MP(){ return MP; }, get U(){ return MPU; } }, get DB(){ return DB; }, get UI(){ return UI; }, render, save, chatSync, get CHAT(){ return chatLoad(); }, aiLocal:aiLocalParse, BRIEF, VOICE, voiceEnsure, voiceLoad, voiceFor, briefText, briefPlay, briefPackEnsure, briefPack, briefStop, briefAuto, briefPrefs, trNum, get SFX_N(){ return SFX.n; }, SFX, playCash, playSfx, finTotals, bkRange, bkUI, harvSum, openEditor:id => openEditor(taskById(id)), t, planText, staffPlanText, genDates, sunTimes, parseBackup, today, addDays, attSum, balanceOf, ledgerOf, salaryMonths, statementText, monthSummaryText, moonOf, mainPhase, loadWeather, PDB, get ROLE(){ return ROLE; }, get RI(){ return RI; }, get SYNC_STATE(){ return SYNC_STATE; }, pushNow, pullNow, syncNow, commit, Fire, isV, viewDocs, vDBOf, curYm, jrPhotoSync, jrSyncState, JDB, get JR_DENIED(){ return JR_DENIED; } };
+  window.__ekip = { BK:{ get:bkGet, put:bkPut, run:bkRun, auto:bkAuto, parse:bkParse, script:BK_SCRIPT }, FC:{ win:fcWin, area:fcArea, data:fcData, cal:fcCalStats, past:fcPastData, delay:fcDelay, areaFac:fcAreaFac, eff:fcEffFac, lag:fcLag, bagSpan:fcBagSpan, price:fcPrice, pmon:fcPriceMonths, kg:fcKgStats, tool:function(n, i){ return advRunTool(n, i || {}); } }, MPX:{ cloud:function(){ return cloudDocs(DB); }, m2:mpM2, da:mpDa, toScr:function(la, lo){ return mpToScr(la, lo); }, get MP(){ return MP; }, get U(){ return MPU; } }, get DB(){ return DB; }, get UI(){ return UI; }, render, save, chatSync, get CHAT(){ return chatLoad(); }, aiLocal:aiLocalParse, BRIEF, VOICE, voiceEnsure, voiceLoad, voiceFor, briefText, briefPlay, briefPackEnsure, briefPack, briefStop, briefAuto, briefPrefs, trNum, get SFX_N(){ return SFX.n; }, SFX, playCash, playSfx, finTotals, bkRange, bkUI, harvSum, openEditor:id => openEditor(taskById(id)), t, planText, staffPlanText, genDates, sunTimes, parseBackup, today, addDays, attSum, balanceOf, ledgerOf, salaryMonths, statementText, monthSummaryText, moonOf, mainPhase, loadWeather, PDB, get ROLE(){ return ROLE; }, get RI(){ return RI; }, get SYNC_STATE(){ return SYNC_STATE; }, pushNow, pullNow, syncNow, commit, Fire, isV, viewDocs, vDBOf, curYm, jrPhotoSync, jrSyncState, JDB, get JR_DENIED(){ return JR_DENIED; } };
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
