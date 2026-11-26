@@ -1807,8 +1807,9 @@ tr:{
   fc_past_intro:"Geçmiş her dönem için: o dönem başladığında uygulamanın yapacağı tahmin ile Hasat'ta gerçekten kesilenin karşılaştırması.",
   fc_past_none:"Karşılaştırılacak geçmiş dönem yok: dönem başlamadan önce girilmiş bir dal kaydı ya da o dönemde muz hasadı gerekir.",
   fc_p_est:"Tahmin", fc_p_act:"Gerçek hasat", fc_p_line:"tahmin {k} · {n} dal", fc_p_act_s:"{n} dal kesildi", fc_p_months:"{n} ay",
+  fc_p_act_c:"≈{n} dal kesildi", fc_p_nokg_s:"kg yazılmamış", fc_p_nokg:"{n} hasat kaydında kg yazılmamış: bu yüzden gerçek hasatın kg toplamı düşük görünür. Karşılaştırma dal sayısıyla yapılır.",
   fc_p_good:"Bu dönemlerde gerçek hasat tahmine yakın ({p}).", fc_p_more:"Gerçek hasat tahminden fazla ({p}): dönem başında kaydı olmayan dallar da kesilmiş, ya da olgunlaşma daha hızlıymış (katsayıyı düşürmeyi deneyin).", fc_p_less:"Gerçek hasat tahminden az ({p}): olgunlaşma daha yavaşmış (katsayıyı artırmayı deneyin) ya da hasatlarda dal/kg yazılmamış.",
-  fc_past_how:"Her dönemin tahmini, o dönemin ilk günü elde olan Dallar kayıtlarıyla ve bugünkü eğri ve katsayılarla hesaplanır. Gerçek hasat: Hasat'taki muz kayıtları (serası seçilmiş olanlar).",
+  fc_past_how:"Her dönemin tahmini, o dönemin ilk günü elde olan Dallar kayıtlarıyla ve bugünkü eğri ve katsayılarla hesaplanır. Gerçek hasat: Hasat'taki muz kayıtları (serası seçilmiş olanlar). Yüzdeler dal sayısıyla hesaplanır; dalı yazılmamış hasatta dal, kg ÷ dal başına kg ile bulunur.",
   fc_fac_l:"Olgunlaşma katsayısı", fc_f_s:"Yaz", fc_f_w:"Kış", fc_f_year:"Bu yıl",
   fc_fac_h:"Yaz katsayısı eğrinin dibini (Mayıs'ta bağlananlar, en kısa olgunlaşma), kış katsayısı tepesini (Kasım'da bağlananlar, en uzun) uzatır ya da kısaltır; aradaki aylar yumuşakça geçer. 1,1 = %10 daha uzun. Bu yılın katsayıları bu telefonda saklanır.",
   fc_af_l:"Seraya göre katsayı", fc_af_h:"Her seranın kendi yaz ve kış katsayısı, yılınkiyle çarpılır. Örneğin naylonu eski bir sera: kış 1,35, yaz (gölge atıldığı için) 1,1. Güneye bakan sera daha çabuk olgunlaşır (0,9 gibi). Boş = 1. Sera bilgisiyle diğer telefonlara da gider.",
@@ -7679,16 +7680,22 @@ function fcPastData(per, areaF){
   if (per === 'week'){ var w0 = weekStart(td); for (var i = 12; i >= 1; i--){ var a0 = addDays(w0, -7 * i); snaps.push({ k:a0, a:a0, b:addDays(a0, 6) }); } }
   else { var m0 = td.slice(0, 7) + '-01', n = per === 'year' ? 24 : 12; for (i = n; i >= 1; i--){ var s = addMonths(m0, -i); snaps.push({ k:s.slice(0, 7), a:s, b:addDays(addMonths(s, 1), -1) }); } }
   snaps.forEach(function(p){
-    var x = { k:p.k, a:p.a, b:p.b, en:0, ekg:0, an:0, akg:0, atl:0, rec:!!first && first < p.a };
+    var x = { k:p.k, a:p.a, b:p.b, en:0, ekg:0, an:0, akg:0, ad:0, nokg:0, conv:0, atl:0, rec:!!first && first < p.a };
     areas.forEach(function(ar){
-      var r = fcArea(ar, addDays(p.a, -1), rowsOf[ar.id] || []);
+      var r = fcArea(ar, addDays(p.a, -1), rowsOf[ar.id] || []), bt = {};
       Object.keys(r.days).forEach(function(d){ if (d < p.a || d > p.b) return; var v = r.days[d]; x.en += v; x.ekg += v * fcKg(KS, ar.id, +d.slice(5, 7), F.kg).v; });
-      (rowsOf[ar.id] || []).forEach(function(h){ if (h.d < p.a || h.d > p.b || !isMuz(h.prod)) return; x.an += +h.dal || 0; x.akg += +h.kg || 0; x.atl += harvSum(h); });
+      (rowsOf[ar.id] || []).forEach(function(h){ if (h.d < p.a || h.d > p.b || !isMuz(h.prod)) return; x.an += +h.dal || 0; x.akg += +h.kg || 0; x.atl += harvSum(h);
+        var o = bt[h.bid || h.id] || (bt[h.bid || h.id] = { kg:0, dal:0, mo:+h.d.slice(5, 7) }); o.kg += +h.kg || 0; o.dal += +h.dal || 0; });
+      /* 3.86: the bunches cut, set against the estimate: each harvest's dal (rows of one harvest together), or, when it has
+         kg and no dal, its kg ÷ the kg per bunch the estimate uses. A harvest with dal and no kg is counted (nokg). */
+      Object.keys(bt).forEach(function(k){ var o = bt[k];
+        if (o.dal > 0){ x.ad += o.dal; if (!(o.kg > 0)) x.nokg++; }
+        else if (o.kg > 0){ x.ad += o.kg / fcKg(KS, ar.id, o.mo, F.kg).v; x.conv++; } });
     });
     list.push(x);
   });
   if (per === 'year'){
-    var y = {}; list.forEach(function(x){ var k = x.k.slice(0, 4), o = y[k] || (y[k] = { k:k, a:x.a, b:x.b, en:0, ekg:0, an:0, akg:0, atl:0, rec:false, months:0 }); ['en', 'ekg', 'an', 'akg', 'atl'].forEach(function(f){ o[f] += x[f]; }); o.b = x.b; o.rec = o.rec || x.rec; o.months++; });
+    var y = {}; list.forEach(function(x){ var k = x.k.slice(0, 4), o = y[k] || (y[k] = { k:k, a:x.a, b:x.b, en:0, ekg:0, an:0, akg:0, ad:0, nokg:0, conv:0, atl:0, rec:false, months:0 }); ['en', 'ekg', 'an', 'akg', 'ad', 'nokg', 'conv', 'atl'].forEach(function(f){ o[f] += x[f]; }); o.b = x.b; o.rec = o.rec || x.rec; o.months++; });
     list = Object.keys(y).sort().map(function(k){ return y[k]; });
   }
   return list.filter(function(x){ return x.rec || x.an > 0 || x.akg > 0; }).reverse();
@@ -7696,20 +7703,24 @@ function fcPastData(per, areaF){
 function fcPastView(D){
   var L = fcPastData(D.per, D.area), h = '';
   if (!L.length) return '<div class="card fcempty"><p class="hint">' + esc(t('fc_past_none')) + '</p></div>';
-  var T = { ekg:0, akg:0, en:0, an:0, atl:0 }; L.forEach(function(x){ for (var k in T) T[k] += x[k]; });
+  var T = { ekg:0, akg:0, en:0, an:0, ad:0, nokg:0, conv:0, atl:0 }; L.forEach(function(x){ for (var k in T) T[k] += x[k]; });
   var pct = function(e, a){ return e > 0 ? Math.round((a - e) / e * 100) : null; }, sg = function(v){ return v == null ? '' : (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v) + '%'; };
-  var tp = pct(T.ekg, T.akg);
+  /* 3.86: set against each other in bunches, so that harvests written without kg (or without dal) do not skew it */
+  var tp = pct(T.en, T.ad);
   h += '<div class="stats flat">' + stat('accent', fcBig(fcKgTxt(T.ekg)), t('fc_p_est'), t('fc_st_dal', { n:dlFmt(T.en) }), '')
-    + stat('', fcBig(fcKgTxt(T.akg)), t('fc_p_act'), t('fc_st_dal', { n:dlFmt(T.an) }) + (T.atl > 0 ? ' · ' + fmtMoney(Math.round(T.atl)) : ''), '')
+    + stat('', fcBig(fcKgTxt(T.akg)), t('fc_p_act'), (T.conv > 0 ? '≈' + t('fc_st_dal', { n:dlFmt(T.ad) }) : t('fc_st_dal', { n:dlFmt(T.an) })) + (T.atl > 0 ? ' · ' + fmtMoney(Math.round(T.atl)) : ''), '')
     + '</div>';
   if (tp != null) h += '<p class="hint">' + esc(t(Math.abs(tp) <= 10 ? 'fc_p_good' : tp > 0 ? 'fc_p_more' : 'fc_p_less', { p:sg(tp) })) + '</p>';
-  var top = 0; L.forEach(function(x){ top = Math.max(top, x.ekg, x.akg); });
+  if (T.nokg > 0) h += '<p class="hint fcnokg">' + esc(t('fc_p_nokg', { n:T.nokg })) + '</p>';
+  var top = 0; L.forEach(function(x){ top = Math.max(top, x.en, x.ad); });
   h += '<section class="sec"><div class="sec-h"><h2>' + esc(t('fc_by_' + D.per)) + '</h2>' + (D.area ? '<span class="aside">' + esc(D.sel[0].a.name) + '</span>' : '') + '</div><div class="bkcard fcl">'
     + L.map(function(x){
-      var lab = D.per === 'year' ? x.k + (x.months < 12 ? ' (' + t('fc_p_months', { n:x.months }) + ')' : '') : fcPerLabel(D.per, x.k, today()), p = pct(x.ekg, x.akg);
+      var lab = D.per === 'year' ? x.k + (x.months < 12 ? ' (' + t('fc_p_months', { n:x.months }) + ')' : '') : fcPerLabel(D.per, x.k, today()), p = pct(x.en, x.ad);
+      var nk = !(x.akg > 0) && x.an > 0, big = nk ? t('fc_st_dal', { n:dlFmt(x.an) }) : fcKgTxt(x.akg);
+      var sm = nk ? t('fc_p_nokg_s') : x.conv > 0 ? t('fc_p_act_c', { n:dlFmt(Math.round(x.ad)) }) : t('fc_p_act_s', { n:dlFmt(x.an) });
       return '<div class="fcrow fcpast"><span class="fcn"><b>' + esc(lab) + '</b><small>' + esc(t('fc_p_line', { k:fcKgTxt(x.ekg), n:dlFmt(x.en) })) + '</small></span>'
-        + '<span class="fcv"><b>' + esc(fcKgTxt(x.akg)) + '</b><small' + (p != null && Math.abs(p) > 10 ? ' class="m"' : '') + '>' + esc(t('fc_p_act_s', { n:dlFmt(x.an) }) + (p != null ? ' · ' + sg(p) : '')) + '</small></span>'
-        + '<span class="bkbar two"><i style="width:' + Math.max(1, Math.round(x.ekg / (top || 1) * 100)) + '%;background:var(--banana-2)"></i><i style="width:' + Math.max(1, Math.round(x.akg / (top || 1) * 100)) + '%;background:var(--leaf)"></i></span></div>';
+        + '<span class="fcv"><b>' + esc(big) + '</b><small' + (p != null && Math.abs(p) > 10 ? ' class="m"' : '') + '>' + esc(sm + (p != null ? ' · ' + sg(p) : '')) + '</small></span>'
+        + '<span class="bkbar two"><i style="width:' + Math.max(1, Math.round(x.en / (top || 1) * 100)) + '%;background:var(--banana-2)"></i><i style="width:' + Math.max(1, Math.round(x.ad / (top || 1) * 100)) + '%;background:var(--leaf)"></i></span></div>';
     }).join('') + '</div><p class="hint"><span class="fcdot" style="background:var(--banana-2)"></span>' + esc(t('fc_p_est')) + ' &nbsp; <span class="fcdot" style="background:var(--leaf)"></span>' + esc(t('fc_p_act')) + '</p>'
     + '<p class="hint">' + esc(t('fc_past_how')) + '</p></section>';
   return h;
@@ -8000,7 +8011,7 @@ function onViewerAccClick(a, act, sh, st, busy){
   return false;
 }
 
-const VERSION = '3.85';
+const VERSION = '3.86';
 const KEY = 'ekip-plani-v1', UIKEY = 'ekip-plani-ui-v1', BK_HEAD = 'MEZRA-YEDEK';
 const AVN = 10;
 const CAT_IDS = CATS.map(c => c.id);

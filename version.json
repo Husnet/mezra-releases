@@ -1,1 +1,1 @@
-{"v": "3.85", "apk": "https://raw.githubusercontent.com/Husnet/mezra-releases/main/Mezra-3.85.apk", "notes": "Ayarlar › Veriler: “Örnek verileri yükle” ve “Sıfırla” kaldırıldı (yanlışlıkla veri kaybını önlemek için)."}
+{"v": "3.86", "apk": "https://raw.githubusercontent.com/Husnet/mezra-releases/main/Mezra-3.86.apk", "notes": "Tahmini gelir › Geçmiş dönemler: tahmin ile gerçek hasat artık dal sayısıyla karşılaştırılıyor; kg'sı yazılmamış hasatlar yüzdeyi bozmuyor."}
