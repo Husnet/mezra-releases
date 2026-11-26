@@ -8000,7 +8000,7 @@ function onViewerAccClick(a, act, sh, st, busy){
   return false;
 }
 
-const VERSION = '3.84';
+const VERSION = '3.85';
 const KEY = 'ekip-plani-v1', UIKEY = 'ekip-plani-ui-v1', BK_HEAD = 'MEZRA-YEDEK';
 const AVN = 10;
 const CAT_IDS = CATS.map(c => c.id);
@@ -9115,7 +9115,7 @@ function viewMore(){
     + '</div></section>';
   h += '<section class="sec"><h2>' + esc(t('data')) + '</h2><p class="hint">' + esc(t('data_note') + ' ' + t('photos_note')) + '</p><div class="group">'
     + (!isW() && !isV() ? it('bk-open', 'upload', t('bk_item'), bkLine()) : '') + it('backup', 'share', t('backup'), t('backup_sub')) + it('restore', 'download', t('restore'), t('restore_sub'))
-    + it('load-sample', 'users', t('load_sample'), t('load_sample_sub'), true) + it('reset', 'trash', t('reset'), t('reset_sub'), true) + '</div></section>';
+    + '</div></section>';
   h += '<div class="about">' + logo() + '<b>Mezra</b><span>' + esc(t('tagline')) + '</span><span>' + esc(t('version', { v:VERSION })) + '</span></div>';
   return h + '</div>';
 }
