@@ -1540,6 +1540,9 @@ small.hqs{font-weight:400;color:var(--muted);font-size:12px}
 .bkstate{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:14px;background:var(--leaf-soft);border:1px solid var(--leaf);margin:0 0 12px}
 .bkstate.bad{background:color-mix(in srgb,var(--warn,#e0a020) 14%,var(--surface));border-color:var(--warn,#e0a020)}
 .bkstate small{color:var(--muted);font-size:12.5px}
+.webrow{display:flex;align-items:center;gap:8px}
+.webrow code{flex:1;min-width:0;font-size:13px;padding:8px 10px;background:var(--surface2);border:1px solid var(--line);border-radius:10px;overflow-wrap:anywhere}
+.webcode{font-size:11px!important}
 </style>
 </head>
 <body>
@@ -1825,6 +1828,8 @@ tr:{
   bk_s4:"Google izin isterse kendi hesabınızla onaylayın (Drive ve Gmail için).",
   bk_s5:"Verilen “Web uygulaması URL'si”ni (…/exec ile biter) aşağıya yapıştırıp Kaydet'e dokunun: ilk yedek hemen gönderilir.",
   bk_share_code:"Kodu paylaş", bk_or:"ya da", bk_url_l:"Web uygulaması adresi ya da bağlantı metni",
+  web_t:"Mezra'yı Chrome'da aç", web_s:"Bilgisayarda: adres, kullanıcı adı ve bağlantı kodu", web_about:"Mezra bilgisayarda Chrome'dan da açılır, her zaman son sürümüyle. “Hesabımla giriş yap”a dokunup aşağıdaki bilgileri ve şifrenizi girin; veriler buluttan gelir.",
+  web_addr:"Adres", web_copy:"Kopyala", web_pw:"Şifre: bu hesabın şifresi (bulutu kurarken belirlediğiniz). Şifre burada gösterilmez.", web_send:"Kendime gönder",
   dl_tab:"Dallar", dl_title:"Seralardaki dallar", dl_intro:"Her seradaki muz dalı: son sayım + sonradan bağlananlar − Hasat'ta kesilenler. Sayım, o günün kesiminden sonra yapılmış sayılır.",
   dl_no_areas:"Muz serası yok. Ayarlar › Alanlar'da seranın türünü “Muz serası” seçin.", dl_total:"Tüm seralarda, {d} itibarıyla", dl_unit:"dal",
   dl_none:"Henüz sayım yok", dl_line_c:"Sayım {d}: {n}", dl_line_nc:"Sayım yok", dl_line_b:"+{n} bağlandı", dl_line_k:"−{n} kesildi",
@@ -7995,7 +8000,7 @@ function onViewerAccClick(a, act, sh, st, busy){
   return false;
 }
 
-const VERSION = '3.83';
+const VERSION = '3.84';
 const KEY = 'ekip-plani-v1', UIKEY = 'ekip-plani-ui-v1', BK_HEAD = 'MEZRA-YEDEK';
 const AVN = 10;
 const CAT_IDS = CATS.map(c => c.id);
@@ -9106,7 +9111,7 @@ function viewMore(){
     + '<div class="item"><div class="field grow"><span class="flabel">' + esc(t('theme')) + '</span><div class="seg full">' + ['auto','light','dark'].map(v => '<button data-act="set-theme" data-v="' + v + '" aria-pressed="' + (S.theme === v) + '">' + esc(t('th_' + v)) + '</button>').join('') + '</div></div></div>'
     + '<div class="item"><div class="field grow"><span class="flabel">' + esc(t('sfx_title')) + '</span><div class="sfxrow"><div class="seg">' + [['on', 'sfx_on'], ['off', 'sfx_off']].map(v => '<button data-act="set-sound" data-v="' + v[0] + '" aria-pressed="' + ((S.sound !== false) === (v[0] === 'on')) + '">' + esc(t(v[1])) + '</button>').join('') + '</div></div><div class="qrow sfxlist">' + [['kaching', 'sfx_kaching'], ['letsgo', 'sfx_letsgo'], ['close', 'sfx_close'], ['tamam', 'sfx_tamam'], ['durdur', 'sfx_durdur'], ['finish', 'sfx_finish'], ['start', 'sfx_start'], ['gogogo', 'sfx_gogogo'], ['kvp', 'sfx_kvp'], ['puantaj', 'sfx_puantaj']].map(v => '<button type="button" class="chip" data-act="sfx-test" data-v="' + v[0] + '">' + ic('play', 'xs') + esc(t(v[1])) + '</button>').join('') + '</div><p class="hint">' + esc(t('sfx_hint')) + '</p></div></div></div></section>';
   h += '<section class="sec"><h2>' + esc(t('cl_title')) + '</h2><p class="hint">' + esc(syncLine()) + '</p><div class="group">'
-    + (ROLE === 'local' ? it('cloud-setup', 'upload', t('cl_connect'), t('cl_connect_sub')) : it('accounts', 'usersPlus', t('acc_title'), t('acc_sub')) + it('sync-now', 'repeat', t('cl_sync_now'), RI.user || ''))
+    + (ROLE === 'local' ? it('cloud-setup', 'upload', t('cl_connect'), t('cl_connect_sub')) : it('accounts', 'usersPlus', t('acc_title'), t('acc_sub')) + it('sync-now', 'repeat', t('cl_sync_now'), RI.user || '') + (ROLE === 'admin' ? it('web-open', 'globe', t('web_t'), t('web_s')) : ''))
     + '</div></section>';
   h += '<section class="sec"><h2>' + esc(t('data')) + '</h2><p class="hint">' + esc(t('data_note') + ' ' + t('photos_note')) + '</p><div class="group">'
     + (!isW() && !isV() ? it('bk-open', 'upload', t('bk_item'), bkLine()) : '') + it('backup', 'share', t('backup'), t('backup_sub')) + it('restore', 'download', t('restore'), t('restore_sub'))
@@ -9589,6 +9594,19 @@ function openBonusAll(d){
       + '<div class="spick" id="baPeople">' + list.map(s => { const r = attOf(d, s.id); return '<button type="button" class="sp" data-act="ba-sel" data-v="' + s.id + '" aria-pressed="' + (S.sel.indexOf(s.id) >= 0) + '">' + avatar(s) + '<span class="nmx">' + esc(s.name) + '</span>' + (r && r.b ? '<span class="w" style="color:var(--muted)">+' + esc(fmtN(r.b)) + '</span>' : '') + '</button>'; }).join('') + '</div><p class="err" id="baErr2" hidden>' + esc(t('err_people')) + '</p></div>';
     return { title:t('bonus_all_title', { d:fmtDM(d) }), body:b, foot:'<button class="btn" data-act="sheet-close">' + esc(t('cancel')) + '</button><span class="spacer"></span><button class="btn primary" data-act="ba-save">' + ic('check', 'sm') + esc(t('save')) + '</button>' };
   } });
+}
+
+/* ----- Mezra in Chrome: the web version and how to sign in there ----- */
+const WEB_URL = 'https://husnet.github.io/mezra-releases/';
+function webInfoText(){ return [t('web_t'), WEB_URL, t('inv_user', { u:RI.user || '' }), t('inv_code', { c:Fire.inviteCode() })].join('\n'); }
+function openWebInfo(){
+  openSheet({ state:{}, render:() => ({ title:t('web_t'),
+    body:'<p class="hint">' + esc(t('web_about')) + '</p>'
+      + '<div class="field"><span class="flabel">' + esc(t('web_addr')) + '</span><div class="webrow"><code>' + esc(WEB_URL) + '</code><button class="iconbtn" data-act="web-copy" data-v="url" aria-label="' + esc(t('web_copy')) + '">' + ic('copy', 'sm') + '</button></div></div>'
+      + '<div class="field"><span class="flabel">' + esc(t('lg_user')) + '</span><div class="webrow"><code>' + esc(RI.user || '') + '</code></div></div>'
+      + '<div class="field"><span class="flabel">' + esc(t('lg_code')) + '</span><div class="webrow"><code class="webcode">' + esc(Fire.inviteCode()) + '</code><button class="iconbtn" data-act="web-copy" data-v="code" aria-label="' + esc(t('web_copy')) + '">' + ic('copy', 'sm') + '</button></div></div>'
+      + '<p class="hint">' + esc(t('web_pw')) + '</p>',
+    foot:'<button class="btn" data-act="sheet-close">' + esc(t('close')) + '</button><span class="spacer"></span><button class="btn primary" data-act="web-share">' + ic('share', 'sm') + esc(t('web_send')) + '</button>' }) });
 }
 
 /* ----- restore ----- */
@@ -10638,6 +10656,9 @@ function onClick(e){
     case 'wd': { const i = +a.dataset.i, w = DB.settings.workdays.slice(); w[i] = w[i] ? 0 : 1; if (!w.some(Boolean)) break; DB.settings.workdays = w; commit(); break; }
     case 'set-theme': DB.settings.theme = a.dataset.v; commit(); break;
     case 'bk-open': case 'bk-run': case 'bk-mail': case 'bk-setup': case 'bk-back': case 'bk-share-code': case 'bk-save': case 'bk-list': case 'bk-pick': case 'bk-apply': case 'bk-off': bkClick(act, a, sh); break;
+    case 'web-open': openWebInfo(); break;
+    case 'web-copy': copyText(a.dataset.v === 'code' ? Fire.inviteCode() : a.dataset.v === 'url' ? WEB_URL : webInfoText()); break;
+    case 'web-share': shareText('Mezra', webInfoText()); break;
     case 'backup': shareText('Mezra', BK_HEAD + '\n' + JSON.stringify(DB)); break;
     case 'restore': openRestore(); break;
     case 'restore-do': { const txt = ($('#rsText', sh.el) || {}).value || '', d = parseBackup(txt); if (!d){ $('#rsErr', sh.el).hidden = false; break; } snap(); d.settings.started = true; DB = d; closeAllSheets(); commit(); toast(t('restored', { s:DB.staff.length, t:DB.tasks.length }), true); break; }
